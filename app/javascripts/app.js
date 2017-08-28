@@ -4,11 +4,12 @@ import "../stylesheets/app.css";
 // Import libraries we need.
 import { default as Web3} from 'web3';
 import { default as contract } from 'truffle-contract'
+var $ = require('jquery');
 
 // Import our contract artifacts and turn them into usable abstractions.
 import storefront_artifacts from '../../build/contracts/Storefront.json'
 
-// MetaCoin is our usable abstraction, which we'll use through the code below.
+// Storefront is our usable abstraction, which we'll use through the code below.
 var Storefront = contract(storefront_artifacts);
 
 // The following code is simple to show off interacting with your contracts.
@@ -38,8 +39,9 @@ window.App = {
 
       accounts = accs;
       account = accounts[0];
-
+      self.setupOwnerInfo();
       self.refreshProductList();
+      self.refreshPurchasesList();
     });
   },
 
@@ -48,13 +50,73 @@ window.App = {
     status.innerHTML = message;
   },
 
+  setupOwnerInfo: function() {
+    var self = this;
+
+    var storefront;
+    Storefront.deployed().then(function(instance) {
+      storefront = instance;
+      return storefront.owner.call();
+    }).then(function(owner) {
+      if(owner == account) {
+        $(".not-admin").css({"display": "none"});
+      }
+    }).catch(function(e) {
+      console.log(e);
+      self.setStatus("Error getting balance; see log.");
+    });
+  },
+
+  buyProduct: function() {
+    var self = this;
+
+    var productId = parseInt(document.getElementById("productIdToBuy").value);
+
+    this.setStatus("Buying product... Please wait...");
+
+    var storefront;
+    Storefront.deployed().then(function(instance) {
+      storefront = instance;
+      return storefront.getPrice.call(productId, {from: account});
+    }).then(function(price) {
+      alert("price of produuct: " + price);
+      return storefront.buyProduct(productId, {value: price.toNumber(), from: account});
+    }).then(function() {
+      self.setStatus("Product bought");
+      self.refreshProductList();
+    }).catch(function(e) {
+      console.log(e);
+      self.setStatus("Error buying product; see log.");
+    });
+  },
+
+  refreshPurchasesList: function() {
+    var self = this;
+
+    var storefront;
+    Storefront.deployed().then(function(instance) {
+      storefront = instance;
+      return storefront.getReceiptCount.call({from: account});
+    }).then(function(numReceipts) {
+      $(".purchases").empty();
+      for(var i = 0; i < numReceipts.toNumber(); i++) {
+        return storefront.getReceipt.call({from: account}).then(function(receiptInfo) {
+            $(".purchases").append("<div> Product:" + receiptInfo.productId + "</div>");
+        });
+      }
+    }).catch(function(e) {
+      console.log(e);
+      self.setStatus("Error getting receipts; see log.");
+    });
+  },
+
   refreshProductList: function() {
     var self = this;
 
-    var meta;
+    var storefront;
     Storefront.deployed().then(function(instance) {
-      meta = instance;
-      return meta.owner.call();
+      storefront = instance;
+      return storefront.owner.call();
     }).then(function(value) {
       alert(value);
     }).catch(function(e) {
@@ -72,10 +134,10 @@ window.App = {
 
     this.setStatus("Adding product to catalog... Please wait...");
 
-    var meta;
+    var storefront;
     Storefront.deployed().then(function(instance) {
-      meta = instance;
-      return meta.addProduct.call(productId, productPrice, productStock, {from: account});
+      storefront = instance;
+      return storefront.addProduct(productId, productPrice, productStock, {from: account});
     }).then(function() {
       self.setStatus("Product Added to catalog");
       self.refreshProductList();
@@ -84,27 +146,6 @@ window.App = {
       self.setStatus("Error creating product; see log.");
     });
   }
-
-/*  sendCoin: function() {
-    var self = this;
-
-    var amount = parseInt(document.getElementById("amount").value);
-    var receiver = document.getElementById("receiver").value;
-
-    this.setStatus("Initiating transaction... (please wait)");
-
-    var meta;
-    MetaCoin.deployed().then(function(instance) {
-      meta = instance;
-      return meta.sendCoin(receiver, amount, {from: account});
-    }).then(function() {
-      self.setStatus("Transaction complete!");
-      self.refreshProductList();
-    }).catch(function(e) {
-      console.log(e);
-      self.setStatus("Error sending coin; see log.");
-    });
-  }*/
 };
 
 window.addEventListener('load', function() {

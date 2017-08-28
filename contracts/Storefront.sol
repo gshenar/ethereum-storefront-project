@@ -2,12 +2,14 @@ pragma solidity ^0.4.0;
 
 contract Storefront {
     address public owner;
-    address[] public administrators;
-    mapping(uint => Product) public productCatalog;
-    mapping(address => Receipt) receipts;
+    mapping(address => bool) private administrators;
+    mapping(uint => Product) private productCatalog;
+    mapping(address => Receipt[]) private receipts;
 
     struct Receipt {
-        uint[] productsBought;
+        uint productId;
+        uint numberBought;
+        uint pricePerProduct;
     }
 
     struct Product {
@@ -15,12 +17,34 @@ contract Storefront {
         uint stock;
     }
 
-    function getReceipts() constant returns (uint[] productsBought) {
-        return receipts[msg.sender].productsBought;
+    modifier administratorsOnly {
+        assert(administrators[msg.sender] == true);
+        _;
     }
 
-    function addProduct(uint id, uint price, uint stock) returns(bool success) {
-        require(msg.sender == owner);
+    event LogPurchase(uint productId, address buyer);
+    event LogNewProduct(uint productId, uint price, uint stock);
+
+    function getPrice(uint id) constant returns (uint productPrice) {
+        require(productCatalog[id].price != 0);
+        return productCatalog[id].price;
+    }
+
+    function getStock(uint id) constant returns (uint productStock) {
+        require(productCatalog[id].price != 0);
+        return productCatalog[id].stock;
+    }
+
+    function getReceiptCount() constant returns (uint numProductsBought) {
+        return receipts[msg.sender].length;
+    }
+
+    function getReceipt(uint receiptNumber) constant returns (uint productId, uint numberBought, uint pricePerProduct) {
+        require(receiptNumber < receipts[msg.sender].length);
+        return (receipts[msg.sender][receiptNumber].productId, receipts[msg.sender][receiptNumber].numberBought,  receipts[msg.sender][receiptNumber].pricePerProduct);
+    }
+
+    function addProduct(uint id, uint price, uint stock) administratorsOnly returns(bool success) {
         require(stock > 0); //Product must be in stock
         require(price > 0); //Product must not be free
         require(id != 0); //Don't allow an id of 0
@@ -30,6 +54,7 @@ contract Storefront {
             price: price,
             stock: stock
         });
+        LogNewProduct(id, price, stock);
         return true;
     }
 
@@ -38,8 +63,14 @@ contract Storefront {
         require(productCatalog[id].stock != 0); //Product must be in stock
         require(productCatalog[id].price == msg.value); //User must buy exactly 1 item for now
 
-        receipts[msg.sender].productsBought.push(id);
+        Receipt memory receipt = Receipt({
+            productId: id,
+            pricePerProduct: productCatalog[id].price,
+            numberBought: 1
+        });
+        receipts[msg.sender].push(receipt);
         productCatalog[id].stock--;
+        LogPurchase(id, msg.sender);
         return true;
     }
 
@@ -51,6 +82,7 @@ contract Storefront {
 
     function Storefront() {
         owner = msg.sender;
+        administrators[msg.sender] = true;
     }
 
 }
