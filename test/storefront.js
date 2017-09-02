@@ -23,14 +23,12 @@ contract('Storefront', function(accounts) {
       storefront = instance;
       return storefront.addProduct(2, 1000000, 3, {  from: accounts[0] });
     }).then(function(result) {
-        console.log(JSON.stringify(result));
        assert.isTrue(!!result.receipt.transactionHash, "Add product should succeed");
-       return storefront.getPrice.call(2, { from: accounts[0] });
-    }).then(function(price) {
-       assert.equal(price.toNumber(), 1000000, "Price of product should be correct");
-       return storefront.getStock.call(2, { from: accounts[0] });
-    }).then(function(stock) {
-       assert.equal(stock.toNumber(), 3, "Stock of product should be correct");
+       return storefront.getProductInfo.call(2, { from: accounts[0] });
+    }).then(function(productInfo) {
+       assert.equal(productInfo[0].toNumber(), 1000000, "Price of product should be correct");
+       assert.equal(productInfo[1].toNumber(), 3, "Stock of product should be correct");
+       assert.equal(productInfo[2], true, "Product must exist");
     });
   });
 });
