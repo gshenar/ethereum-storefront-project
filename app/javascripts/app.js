@@ -55,7 +55,7 @@ window.App = {
       var storefront = await Storefront.deployed();
       var owner = await storefront.owner.call();
       if(owner == account) {
-        $(".not-admin").css({"display": "none"});
+        $(".not-owner").css({"display": "none"});
       }
     } catch(e) {
       console.log(e);
@@ -88,9 +88,8 @@ window.App = {
       var numReceipts = await storefront.getReceiptCount.call({from: account});
       $(".purchases").empty();
       for(var i = 0; i < numReceipts.toNumber(); i++) {
-        return storefront.getReceipt.call({from: account}).then(function(receiptInfo) {
-            $(".purchases").append("<div> Product:" + receiptInfo.productId + "</div>");
-        });
+        var receiptInfo = await storefront.getReceipt.call(i, {from: account});
+        $(".purchases").append(`<div> BlockNumber: ${receiptInfo[3]} -- ProductId: ${receiptInfo[0]} -- Number Bought: ${receiptInfo[1]} -- Price Paid Per Product: ${receiptInfo[2]}</div>`);
       }
     } catch(e) {
       console.log(e);

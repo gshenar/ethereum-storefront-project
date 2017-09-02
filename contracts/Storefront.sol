@@ -19,6 +19,7 @@ contract Storefront is Owned, Administrated {
         uint productId;
         uint numberBought;
         uint pricePerProduct;
+        uint blockNumber;
     }
 
     struct Product {
@@ -51,9 +52,9 @@ contract Storefront is Owned, Administrated {
         return receipts[msg.sender].length;
     }
 
-    function getReceipt(uint receiptNumber) constant returns (uint productId, uint numberBought, uint pricePerProduct) {
+    function getReceipt(uint receiptNumber) constant returns (uint productId, uint numberBought, uint pricePerProduct, uint blockNumber) {
         require(receiptNumber < receipts[msg.sender].length);
-        return (receipts[msg.sender][receiptNumber].productId, receipts[msg.sender][receiptNumber].numberBought,  receipts[msg.sender][receiptNumber].pricePerProduct);
+        return (receipts[msg.sender][receiptNumber].productId, receipts[msg.sender][receiptNumber].numberBought,  receipts[msg.sender][receiptNumber].pricePerProduct, receipts[msg.sender][receiptNumber].blockNumber);
     }
 
     function addProduct(uint id, uint price, uint stock) administratorsOnly returns(bool success) {
@@ -78,7 +79,8 @@ contract Storefront is Owned, Administrated {
         Receipt memory receipt = Receipt({
             productId: id,
             pricePerProduct: productCatalog[id].price,
-            numberBought: 1
+            numberBought: 1,
+            blockNumber: block.number
         });
         receipts[msg.sender].push(receipt);
         productCatalog[id].stock--;

@@ -7,12 +7,11 @@
 </head>
 <body>
   <h1>My Storefront Project</h1>
-  <h2>Beginner Solidity Project</h2>
 
   <h3> Welcome to the store </h3>
-  <h3> You are <span class="not-owner">not</span> an Administrator </h3>
-  <h3> You are <span class="not-admin">not</span> the owner </h3>
+  <h4> You are <span class="not-owner">not</span> the owner </h4>
 
+  Status: <span id="status"></span>
 
   <br>
   <h1>Buy Product</h1>
@@ -25,10 +24,9 @@
   <br><label for="productStock">How many of this product do you want to add?</label><input type="text" id="productStock" placeholder="e.g., 1"></input>
   <br><br><button id="send" onclick="App.addProduct()">Add Product to Catalog</button>
   <br><br>
-  <span id="status"></span>
   <br>
   <h1>
-    Your purchases
+    Your Receipts
   </h1>
   <div class="purchases"></div>
 </body>
