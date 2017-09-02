@@ -1,8 +1,17 @@
 pragma solidity ^0.4.0;
 
-contract Storefront {
+contract Owned {
     address public owner;
-    mapping(address => bool) private administrators;
+    function Owned() {
+        owner = msg.sender;
+    }
+}
+
+contract Administrated {
+    mapping(address => bool) internal administrators;
+}
+
+contract Storefront is Owned, Administrated {
     mapping(uint => Product) private productCatalog;
     mapping(address => Receipt[]) private receipts;
 
@@ -15,24 +24,27 @@ contract Storefront {
     struct Product {
         uint price;
         uint stock;
+        bool exists;
     }
 
     modifier administratorsOnly {
-        assert(administrators[msg.sender] == true);
+        require(administrators[msg.sender] == true);
         _;
     }
 
     event LogPurchase(uint productId, address buyer);
     event LogNewProduct(uint productId, uint price, uint stock);
+    event LogWithdrawal(address recipient);
+    event LogProductRemoved(uint productId);
 
-    function getPrice(uint id) constant returns (uint productPrice) {
-        require(productCatalog[id].price != 0);
-        return productCatalog[id].price;
+    function Storefront() {
+        owner = msg.sender;
+        administrators[msg.sender] = true;
     }
 
-    function getStock(uint id) constant returns (uint productStock) {
-        require(productCatalog[id].price != 0);
-        return productCatalog[id].stock;
+    function getProductInfo(uint id) constant returns (uint productPrice, uint productStock, bool exists)
+    {
+        return (productCatalog[id].price, productCatalog[id].stock, productCatalog[id].exists);
     }
 
     function getReceiptCount() constant returns (uint numProductsBought) {
@@ -48,18 +60,18 @@ contract Storefront {
         require(stock > 0); //Product must be in stock
         require(price > 0); //Product must not be free
         require(id != 0); //Don't allow an id of 0
-        //TODO - is there a better way to check if a product exists in the catalog?
-        require(productCatalog[id].price == 0);  //Can't add a product with an id that already exists
+        require(productCatalog[id].exists == false);  //Can't add a product with an id that already exists
         productCatalog[id] = Product({
             price: price,
-            stock: stock
+            stock: stock,
+            exists: true
         });
         LogNewProduct(id, price, stock);
         return true;
     }
 
     function buyProduct(uint id) payable returns (bool success) {
-        require(productCatalog[id].price != 0); //Product must exist
+        require(productCatalog[id].exists == true); //Product must exist
         require(productCatalog[id].stock != 0); //Product must be in stock
         require(productCatalog[id].price == msg.value); //User must buy exactly 1 item for now
 
@@ -74,15 +86,19 @@ contract Storefront {
         return true;
     }
 
-    function widthdraw() returns (bool success) {
-        require(msg.sender == owner);
-        owner.transfer(this.balance);
+    function removeProduct(uint id) administratorsOnly returns (bool success) {
+        require(productCatalog[id].exists == true); //Fail if product never existed
+        productCatalog[id].exists = false;
+        productCatalog[id].stock = 0;
+        productCatalog[id].price = 0;
+        LogProductRemoved(id);
         return true;
     }
 
-    function Storefront() {
-        owner = msg.sender;
-        administrators[msg.sender] = true;
+    function widthdraw() returns (bool success) {
+        require(msg.sender == owner);
+        owner.transfer(this.balance);
+        LogWithdrawal(msg.sender);
+        return true;
     }
-
 }
