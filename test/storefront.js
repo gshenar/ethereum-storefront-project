@@ -1,3 +1,4 @@
+require('babel-polyfill');
 var Storefront = artifacts.require("./Storefront.sol");
 
 contract('Storefront', function(accounts) {
@@ -19,16 +20,14 @@ contract('Storefront', function(accounts) {
   });
   it("product should be in stock and added and should be able to get price", function() {
     var storefront;
-    return Storefront.deployed().then(function(instance) {
+    return Storefront.deployed().then(async function(instance) {
       storefront = instance;
-      return storefront.addProduct(2, 1000000, 3, {  from: accounts[0] });
-    }).then(function(result) {
-       assert.isTrue(!!result.receipt.transactionHash, "Add product should succeed");
-       return storefront.getProductInfo.call(2, { from: accounts[0] });
-    }).then(function(productInfo) {
-       assert.equal(productInfo[0].toNumber(), 1000000, "Price of product should be correct");
-       assert.equal(productInfo[1].toNumber(), 3, "Stock of product should be correct");
-       assert.equal(productInfo[2], true, "Product must exist");
+      var addProductResponse = await storefront.addProduct(2, 1000000, 3, {  from: accounts[0] });
+      assert.isTrue(!!addProductResponse.receipt.transactionHash, "Add product should succeed");
+      var productInfo = await storefront.getProductInfo.call(2, { from: accounts[0] });
+      assert.equal(productInfo[0].toNumber(), 1000000, "Price of product should be correct");
+      assert.equal(productInfo[1].toNumber(), 3, "Stock of product should be correct");
+      assert.equal(productInfo[2], true, "Product must exist");
     });
   });
 });
